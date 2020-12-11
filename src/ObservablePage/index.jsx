@@ -1,36 +1,65 @@
 import React, { useState, useEffect } from "react";
 import "./styles.scss";
-import { interval, from, range, of } from "rxjs";
-import { concatMap, delay } from "rxjs/operators";
-
-const observableTemperature = range(1, 30).pipe(
-  concatMap((i) => of(i).pipe(delay(1000 + Math.random() * 4000)))
-);
-
-const observableAirPressure = range(600, 1000).pipe(
-  concatMap((i) => of(i).pipe(delay(1000 + Math.random() * 4000)))
-);
-
-const observableHumidity = range(1, 100).pipe(
-  concatMap((i) => of(i).pipe(delay(1000 + Math.random() * 4000)))
-);
+import { range, of } from "rxjs";
+import { concatMap, delay, timeout } from "rxjs/operators";
 
 const ObservablePage = () => {
-  const [temperature, setTemperature] = useState(2);
+  const [temperature, setTemperature] = useState([0]);
   const [airPressure, setAirPressure] = useState(0);
   const [humidity, setHumidity] = useState(0);
 
-  useEffect(() => {
-    const subTemperature = observableTemperature.subscribe(setTemperature);
-    const subTairPressure = observableAirPressure.subscribe(setAirPressure);
-    const subHumidity = observableHumidity.subscribe(setHumidity);
+  const randomDelay = () => {
+    return 1 + Math.random() * 2000;
+  };
 
-    return () => {
-        subTemperature.unsubscribe()
-        subTairPressure.unsubscribe()
-        subHumidity.unsubscribe()
-    };
+  const observableTemperature = range(1, 30).pipe(
+    concatMap((i) => of(i).pipe(delay(randomDelay())))
+  );
+
+  const observableAirPressure = range(600, 1000).pipe(
+    concatMap((i) => of(i).pipe(delay(randomDelay())))
+  );
+
+  const observableHumidity = range(1, 100).pipe(
+    concatMap((i) => of(i).pipe(delay(randomDelay())))
+  );
+
+  const subTemperature = () => {
+    observableTemperature.pipe(timeout(1000)).subscribe(
+      (val) => setTemperature(val),
+      (err) => {
+        setTemperature("N/a");
+        subTemperature();
+      }
+    );
+  };
+
+  const subAirPressure = () => {
+    observableAirPressure.pipe(timeout(1000)).subscribe(
+      (val) => setAirPressure(val),
+      (err) => {
+        setAirPressure("N/a");
+        subAirPressure();
+      }
+    );
+  };
+
+  const subHumidity = () => {
+    observableHumidity.pipe(timeout(1000)).subscribe(
+      (val) => setHumidity(val),
+      (err) => {
+        setHumidity("N/a");
+        subHumidity();
+      }
+    );
+  };
+
+  useEffect(() => {
+    subTemperature();
+    subAirPressure();
+    subHumidity();
   }, []);
+
   return (
     <div class="container">
       <div class="data">
